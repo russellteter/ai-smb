@@ -1,4 +1,4 @@
-export * from './leadquery';
-export * from './schemas';
-export * from './csv';
+export * from './leadquery.js';
+export * from './schemas.js';
+export * from './csv.js';
 
