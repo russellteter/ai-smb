@@ -48,230 +48,251 @@ const mockLeads: Lead[] = [
     website: 'https://dataflow.io',
     location: 'Austin, TX',
     industry: 'Data Analytics',
-    size: '10-50 employees',
-    revenue: '$1M-$10M',
-    score: 72,
-    signals: ['Manual reporting processes', 'Growing team', 'Looking for automation'],
+    size: '20-50 employees',
+    revenue: '$5M-$10M',
+    score: 78,
+    signals: ['Manual processes detected', 'Growing team'],
+    phone: '+1 (555) 234-5678',
     email: 'hello@dataflow.io',
     lastUpdated: new Date(),
-    status: 'new',
+    status: 'qualified',
     contacts: [
-      { name: 'Mike Chen', title: 'Founder', email: 'mike@dataflow.io' }
+      { name: 'Mike Davis', title: 'Founder', email: 'mike@dataflow.io' }
     ],
-    technologies: ['Python', 'PostgreSQL', 'Tableau']
+    technologies: ['Python', 'PostgreSQL', 'AWS'],
+    socialLinks: {
+      linkedin: 'https://linkedin.com/company/dataflow'
+    }
   }
 ]
 
+const mockSearchJob: SearchJob = {
+  id: 'job-123',
+  prompt: 'Find SaaS companies in California that might need AI automation',
+  status: 'streaming',
+  progress: 65,
+  totalLeads: 142,
+  processedLeads: 92,
+  startedAt: new Date(),
+  currentStep: 'Enriching lead data with signals'
+}
+
 export default function Home() {
-  const [searchJob, setSearchJob] = useState<SearchJob>({ id: '', status: 'idle' })
-  const [leads, setLeads] = useState<Lead[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showContactModal, setShowContactModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
-  const [contactLeads, setContactLeads] = useState<Lead[]>([])
-  const [exportLeads, setExportLeads] = useState<Lead[]>([])
-  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set())
+  const [isMobileView, setIsMobileView] = useState(false)
+  const [currentTab, setCurrentTab] = useState<'search' | 'leads' | 'analytics'>('search')
+  const [searchJob, setSearchJob] = useState<SearchJob | null>(null)
+  const [leads, setLeads] = useState<Lead[]>(mockLeads)
 
-  const handleSearch = (query: string, filters: any[]) => {
-    console.log('Starting search with query:', query, 'and filters:', filters)
-    
+  const handleStartSearch = (prompt: string) => {
+    setIsStreaming(true)
     setSearchJob({
-      id: Date.now().toString(),
+      ...mockSearchJob,
+      prompt,
       status: 'streaming',
-      metrics: {
-        totalFound: 0,
-        processed: 0,
-        enriched: 0,
-        qualified: 0,
-        speed: 2.3,
-        eta: 45
-      }
+      progress: 0
     })
-
-    // Simulate streaming results
-    setTimeout(() => {
-      setLeads(mockLeads)
-      setSearchJob(prev => ({
-        ...prev,
-        status: 'completed',
-        metrics: {
-          ...prev.metrics!,
-          totalFound: mockLeads.length,
-          processed: mockLeads.length,
-          enriched: mockLeads.length,
-          qualified: mockLeads.filter(l => l.score >= 70).length,
-        }
-      }))
-    }, 3000)
+    
+    // Simulate streaming progress
+    let progress = 0
+    const interval = setInterval(() => {
+      progress += Math.random() * 15
+      if (progress >= 100) {
+        setIsStreaming(false)
+        setSearchJob(prev => prev ? { ...prev, status: 'completed', progress: 100 } : null)
+        clearInterval(interval)
+      } else {
+        setSearchJob(prev => prev ? { ...prev, progress: Math.min(progress, 99) } : null)
+      }
+    }, 1000)
   }
 
-  const handleContactLeads = (leads: Lead[]) => {
-    setContactLeads(leads)
+  const handleExport = (format: string) => {
+    console.log('Exporting in format:', format)
+    setShowExportModal(false)
+  }
+
+  const handleContactLead = (lead: Lead) => {
+    setSelectedLead(lead)
     setShowContactModal(true)
   }
 
-  const handleExportLeads = (leads: Lead[]) => {
-    setExportLeads(leads)
-    setShowExportModal(true)
-  }
-
-  const handleSendMessage = (method: string, message: string, leads: Lead[]) => {
-    console.log('Sending message via', method, 'to', leads.length, 'leads:', message)
-    setShowContactModal(false)
-    // Here you would integrate with your backend API
-  }
-
-  const handleExport = (format: string, fields: string[], leads: Lead[]) => {
-    console.log('Exporting', leads.length, 'leads as', format, 'with fields:', fields)
-    setShowExportModal(false)
-    // Here you would integrate with your backend API
-  }
-
-  const mobileActions = [
-    { icon: Search, label: 'Search', onClick: () => {}, variant: 'primary' as const },
-    { icon: Filter, label: 'Filter', onClick: () => {}, variant: 'secondary' as const },
-    { icon: Download, label: 'Export', onClick: () => handleExportLeads(leads), variant: 'secondary' as const },
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 relative">
-      {/* Background Elements */}
-      <FloatingElements count={3} size="lg" color="primary" />
-      <AnimatedGradient variant="mesh" opacity={0.1} className="fixed inset-0 pointer-events-none" />
+    <>
+      <AnimatedGradient />
+      <FloatingElements />
       
-      {/* Mobile Navigation */}
-      <MobileNavigation currentPage="dashboard" />
-      
-      {/* Desktop Header */}
-      <div className="hidden md:block">
-        <Header />
-      </div>
-      
-      {/* Main Content */}
-      <main className="pt-16 md:pt-0">
-        <div className="container-app py-6 md:py-8">
-          {/* Welcome Section */}
-          <div className="text-center space-y-4 mb-8">
-            <h1 className="text-display gradient-text">Find Your Next Best Customers</h1>
-            <p className="text-body-lg max-w-2xl mx-auto text-balance">
-              Use natural language and advanced filters to discover SMB leads with specific characteristics,
-              missing technologies, or growth opportunities.
-            </p>
-          </div>
-
-          {/* Advanced Search */}
-          <div className="mb-8">
-            <AdvancedSearch onSearch={handleSearch} />
-          </div>
-
-          {/* Results Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-            {/* Stream Status */}
-            {searchJob.status !== 'idle' && (
-              <div className="xl:col-span-1">
-                <StreamStatus
-                  status={searchJob.status}
-                  metrics={searchJob.metrics}
-                  message="Analyzing businesses and enriching data..."
-                />
+      <div className="min-h-screen relative">
+        <div className="relative z-10">
+          <Header />
+          
+          <main className="container mx-auto px-4 py-8 max-w-7xl">
+            {/* Desktop View */}
+            <div className="hidden lg:block space-y-8">
+              {/* Hero Section */}
+              <div className="text-center mb-12">
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent mb-4">
+                  Mothership Leads
+                </h1>
+                <p className="text-xl text-gray-600 dark:text-gray-300">
+                  AI-Powered SMB Discovery & Outreach Platform
+                </p>
               </div>
-            )}
 
-            {/* Results */}
-            <div className={`xl:col-span-${searchJob.status !== 'idle' ? '3' : '4'}`}>
-              {/* Desktop Table View */}
-              <div className="hidden md:block">
-                {leads.length > 0 && (
-                  <LeadTable
-                    leads={leads}
-                    onContact={handleContactLeads}
-                    onExport={handleExportLeads}
+              {/* Search Section */}
+              <AdvancedSearch onSearch={(query, filters) => handleStartSearch(query)} />
+
+              {/* Streaming Status */}
+              {searchJob && (
+                <div className="space-y-4">
+                  <StreamStatus 
+                    status={searchJob.status}
+                    metrics={searchJob.metrics}
+                    message={searchJob.currentStep}
                   />
+                  {searchJob.status === 'streaming' && (
+                    <LiveFeed 
+                      leads={leads.map(lead => ({ ...lead, timestamp: new Date() }))} 
+                      isStreaming={true} 
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Results Section */}
+              <div className="grid grid-cols-12 gap-6">
+                <div className={selectedLead ? 'col-span-8' : 'col-span-12'}>
+                  <LeadTable 
+                    leads={leads}
+                    onContact={(selectedLeads) => {
+                      if (selectedLeads.length > 0) {
+                        handleContactLead(selectedLeads[0])
+                      }
+                    }}
+                    onExport={(selectedLeads) => {
+                      console.log('Exporting leads:', selectedLeads)
+                      setShowExportModal(true)
+                    }}
+                  />
+                </div>
+                
+                {selectedLead && (
+                  <div className="col-span-4">
+                    <LeadDetailPanel
+                      lead={selectedLead}
+                      isOpen={true}
+                      onClose={() => setSelectedLead(null)}
+                      onUpdate={(updatedLead) => {
+                        setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l))
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
-              {/* Mobile Card View */}
-              <div className="md:hidden space-y-4">
-                {leads.map((lead) => (
-                  <MobileLeadCard
-                    key={lead.id}
-                    lead={lead}
-                    onSelect={setSelectedLead}
-                    onContact={(lead) => handleContactLeads([lead])}
-                    onSave={(lead) => console.log('Save lead:', lead)}
-                    onShare={(lead) => console.log('Share lead:', lead)}
-                  />
-                ))}
+              {/* Quick Actions */}
+              <div className="fixed bottom-8 right-8 space-y-4">
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="group flex items-center justify-center w-14 h-14 bg-white dark:bg-dark-200 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110"
+                >
+                  <Download className="w-6 h-6 text-gray-600 dark:text-gray-300 group-hover:text-primary-600" />
+                </button>
+                <button
+                  onClick={() => handleStartSearch('Find AI-ready companies')}
+                  className="group flex items-center justify-center w-14 h-14 bg-gradient-to-r from-primary-600 to-accent-600 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110"
+                >
+                  <Plus className="w-6 h-6 text-white" />
+                </button>
               </div>
-
-              {/* Empty State */}
-              {leads.length === 0 && searchJob.status === 'idle' && (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary-100 to-accent-purple/10 flex items-center justify-center">
-                    <Search className="w-10 h-10 text-primary-600" />
-                  </div>
-                  <h3 className="text-heading-4 mb-2">Ready to Find Leads</h3>
-                  <p className="text-body max-w-md mx-auto">
-                    Use the search above to start finding your next best customers.
-                    Try something like "SaaS companies in SF without AI tools".
-                  </p>
-                </div>
-              )}
-
-              {/* Live Feed for Streaming */}
-              {searchJob.status === 'streaming' && (
-                <div className="mt-6">
-                  <LiveFeed
-                    leads={leads.map(lead => ({
-                      ...lead,
-                      timestamp: new Date()
-                    }))}
-                    isStreaming={searchJob.status === 'streaming'}
-                  />
-                </div>
-              )}
             </div>
-          </div>
-        </div>
-      </main>
 
-      {/* Mobile Action Bar */}
-      {leads.length > 0 && (
-        <div className="md:hidden">
-          <MobileActionBar actions={mobileActions} />
-          <MobileFloatingButton
-            icon={Plus}
-            onClick={() => console.log('Add new search')}
+            {/* Mobile View */}
+            <div className="lg:hidden">
+              {currentTab === 'search' && (
+                <div className="space-y-6">
+                  <AdvancedSearch onSearch={(query, filters) => handleStartSearch(query)} />
+                  {searchJob && (
+                    <StreamStatus 
+                      status={searchJob.status}
+                      metrics={searchJob.metrics}
+                      message={searchJob.currentStep}
+                    />
+                  )}
+                </div>
+              )}
+
+              {currentTab === 'leads' && (
+                <div className="space-y-4">
+                  {leads.map(lead => (
+                    <MobileLeadCard
+                      key={lead.id}
+                      lead={lead}
+                      onSelect={() => setSelectedLead(lead)}
+                      onContact={() => handleContactLead(lead)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {currentTab === 'analytics' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="glass-card p-4">
+                      <p className="text-sm text-gray-500">Total Leads</p>
+                      <p className="text-2xl font-bold">{leads.length}</p>
+                    </div>
+                    <div className="glass-card p-4">
+                      <p className="text-sm text-gray-500">Avg Score</p>
+                      <p className="text-2xl font-bold">81.5</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <MobileActionBar
+                actions={[
+                  { icon: Search, label: 'Search', onClick: () => setCurrentTab('search') },
+                  { icon: Filter, label: 'Leads', onClick: () => setCurrentTab('leads') },
+                  { icon: Download, label: 'Export', onClick: () => setShowExportModal(true) }
+                ]}
+              />
+
+              <MobileFloatingButton
+                icon={Plus}
+                onClick={() => handleStartSearch('Find AI-ready companies')}
+              />
+
+              <MobileNavigation currentPage={currentTab} />
+            </div>
+          </main>
+        </div>
+
+        {/* Modals */}
+        {showContactModal && selectedLead && (
+          <ContactModal
+            leads={[selectedLead]}
+            isOpen={true}
+            onClose={() => setShowContactModal(false)}
+            onSend={(method, message, leads) => {
+              console.log('Sending:', method, message, leads)
+              setShowContactModal(false)
+            }}
           />
-        </div>
-      )}
+        )}
 
-      {/* Modals */}
-      <ContactModal
-        leads={contactLeads}
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        onSend={handleSendMessage}
-      />
-
-      <ExportModal
-        leads={exportLeads}
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        onExport={handleExport}
-      />
-
-      {/* Lead Detail Panel */}
-      <LeadDetailPanel
-        lead={selectedLead}
-        isOpen={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
-        onUpdate={(updatedLead) => {
-          setLeads(prev => prev.map(lead => 
-            lead.id === updatedLead.id ? updatedLead : lead
-          ))
-        }}
-      />
-    </div>
+        {showExportModal && (
+          <ExportModal
+            leads={leads}
+            isOpen={true}
+            onExport={handleExport}
+            onClose={() => setShowExportModal(false)}
+          />
+        )}
+      </div>
+    </>
   )
 }

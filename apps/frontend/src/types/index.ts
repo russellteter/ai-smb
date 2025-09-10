@@ -41,7 +41,13 @@ export interface Lead {
 
 export interface SearchJob {
   id: string
+  prompt?: string
   status: 'idle' | 'connecting' | 'streaming' | 'completed' | 'error'
+  progress?: number
+  totalLeads?: number
+  processedLeads?: number
+  startedAt?: Date
+  currentStep?: string
   metrics?: {
     totalFound: number
     processed: number
