@@ -23,6 +23,7 @@ const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379'
 const searchQueue = new Queue('search', { connection });
 const searchEvents = new QueueEvents('search', { connection });
 
+app.get('/', async () => ({ service: 'mothership-api', status: 'live', version: '1.0.0' }));
 app.get('/health', async () => ({ ok: true }));
 app.get('/api/job_health', async () => {
   // Minimal stub until full metrics: return queue counts
