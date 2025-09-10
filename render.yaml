@@ -20,6 +20,19 @@ services:
         sync: false
       - key: GOOGLE_MAPS_API_KEY
         sync: false
+  - type: web
+    name: mothership-frontend
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm -C apps/frontend run build
+    startCommand: pnpm -C apps/frontend start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_URL
+        value: https://mothership-api.onrender.com
   - type: worker
     name: mothership-workers
     env: node
