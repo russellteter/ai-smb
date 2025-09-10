@@ -1,0 +1,22 @@
+{
+  "name": "mothership-leads",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.6.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "pnpm -r install",
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "migrate": "pnpm -r run migrate",
+    "seed": "pnpm -r run seed",
+    "evals": "pnpm -r run evals"
+  }
+}
+

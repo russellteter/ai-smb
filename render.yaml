@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: mothership-api
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm -C apps/api run build
+    startCommand: node apps/api/dist/index.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+  - type: worker
+    name: mothership-workers
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm -C apps/workers run build
+    startCommand: node apps/workers/dist/index.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+

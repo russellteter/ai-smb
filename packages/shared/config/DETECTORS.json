@@ -1,0 +1,8 @@
+{
+  "chat_vendors": ["intercom","drift","tidio","crisp","livechat","zopim","zendesk","hubspot/js/hs-chat","botpress","manychat","smartsupp","tawk.to"],
+  "booking_keywords": [
+    "calendly.com","localmed.com","nexhealth.com","doctible.com","zocdoc.com","setmore.com","acuityscheduling.com","squareup.com/appointments","mindbodyonline.com","jane.app","tebra.com","housecallpro.com","getjobber.com","servicetitan.com"
+  ],
+  "owner_role_keywords": ["Owner","Principal","Founder","Managing Partner","Dr.","DDS","DMD","Esq."]
+}
+

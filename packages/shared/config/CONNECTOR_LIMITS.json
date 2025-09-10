@@ -1,0 +1,7 @@
+{
+  "google_places": { "per_minute": 120 },
+  "http_fetch": { "per_domain_per_minute": 30 },
+  "wappalyzer": { "per_minute": 60 },
+  "whois": { "per_minute": 30 }
+}
+

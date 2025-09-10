@@ -1,0 +1,11 @@
+{
+  "generic": {
+    "weights": {
+      "ICP": 0.35,
+      "Pain": 0.35,
+      "Reachability": 0.20,
+      "ComplianceRisk": -0.10
+    }
+  }
+}
+

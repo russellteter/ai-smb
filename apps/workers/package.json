@@ -1,0 +1,35 @@
+{
+  "name": "@mothership/workers",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "drizzle-kit migrate",
+    "seed": "echo 'no seeds in workers'",
+    "evals": "echo 'noop evals in workers'"
+  },
+  "dependencies": {
+    "@mothership/shared": "workspace:*",
+    "bullmq": "^5.9.2",
+    "ioredis": "^5.4.1",
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.3",
+    "pino": "^9.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/pg": "^8.10.2",
+    "drizzle-kit": "^0.25.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.5.4",
+    "tsx": "^4.16.2",
+    "vitest": "^2.0.1"
+  }
+}
+

@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: Mothership Leads API (MVP)
+  version: 0.1.0
+paths:
+  /api/parse_prompt:
+    post:
+      summary: Parse natural language prompt into LeadQuery DSL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prompt:
+                  type: string
+      responses:
+        '200':
+          description: Parsed DSL
+  /api/search_jobs:
+    post:
+      summary: Start a search job
+      responses:
+        '200':
+          description: Job created
+  /api/search_jobs/{id}/stream:
+    get:
+      summary: Stream job events via SSE
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream
+
