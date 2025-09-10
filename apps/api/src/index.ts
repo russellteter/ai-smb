@@ -53,9 +53,8 @@ app.post('/api/parse_prompt', async (req, reply) => {
         { role: 'user', content: user }
       ],
       temperature: 0,
-      response_format: { type: 'json_object' },
-      timeout: 2000
-    });
+      response_format: { type: 'json_object' }
+    }, { timeout: 20000 });
     const text = resp.choices[0]?.message?.content || '{}';
     const parsed = JSON.parse(text);
     warnings = parsed.warnings || [];
