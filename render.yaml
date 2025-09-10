@@ -1,4 +1,10 @@
 services:
+  - type: redis
+    name: mothership-redis
+    region: oregon
+    plan: starter
+    maxmemoryPolicy: noeviction
+    
   - type: web
     name: mothership-api
     env: node
@@ -15,7 +21,10 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: redis
+          name: mothership-redis
+          property: connectionString
       - key: OPENAI_API_KEY
         sync: false
       - key: GOOGLE_MAPS_API_KEY
@@ -47,7 +56,10 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: redis
+          name: mothership-redis
+          property: connectionString
       - key: GOOGLE_MAPS_API_KEY
         sync: false
 
