@@ -1,4 +1,4 @@
-import { LeadQuerySchema } from './leadquery';
+import { LeadQuerySchema } from './leadquery.js';
 import { z } from 'zod';
 
 export const ParsePromptRequestSchema = z.object({
