@@ -274,11 +274,11 @@ export function AdvancedSearch({ onSearch }: { onSearch: (query: string, filters
           <Clock className="w-4 h-4" />
           <span>Recent:</span>
           <button className="text-primary-600 hover:text-primary-700">
-            "SaaS companies in SF"
+            &quot;SaaS companies in SF&quot;
           </button>
           <span className="text-gray-400">•</span>
           <button className="text-primary-600 hover:text-primary-700">
-            "E-commerce startups"
+            &quot;E-commerce startups&quot;
           </button>
         </div>
       </div>

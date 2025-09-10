@@ -42,7 +42,7 @@ export function SearchForm({ onSearch, loading, disabled }: SearchFormProps) {
           {/* Main Search Input */}
           <div className="space-y-2">
             <label htmlFor="search-prompt" className="text-body font-medium">
-              Describe the leads you're looking for
+              Describe the leads you&apos;re looking for
             </label>
             <div className="relative">
               <Textarea
@@ -79,7 +79,7 @@ export function SearchForm({ onSearch, loading, disabled }: SearchFormProps) {
                   className="text-left p-3 text-sm text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   disabled={disabled}
                 >
-                  "{example}"
+                  &quot;{example}&quot;
                 </button>
               ))}
             </div>

@@ -32,7 +32,7 @@ services:
     env: node
     plan: starter
     region: oregon
-    buildCommand: pnpm install --frozen-lockfile && pnpm -C apps/api run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm -C packages/shared run build && pnpm -C packages/db run build && pnpm -C apps/api run build
     startCommand: node apps/api/dist/index.js
     autoDeploy: true
     envVars:
@@ -69,7 +69,7 @@ services:
     env: node
     plan: starter
     region: oregon
-    buildCommand: pnpm install --frozen-lockfile && pnpm -C apps/workers run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm -C packages/shared run build && pnpm -C packages/db run build && pnpm -C apps/workers run build
     startCommand: node apps/workers/dist/index.js
     autoDeploy: true
     envVars:

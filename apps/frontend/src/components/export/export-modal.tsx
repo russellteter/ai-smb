@@ -364,7 +364,7 @@ export function ExportModal({ leads, isOpen, onClose, onExport }: ExportModalPro
 
                 <div className="text-center mt-6">
                   <p className="text-sm text-gray-500">
-                    Don't see your CRM? <a href="#" className="text-primary-600 hover:text-primary-700">Request an integration</a>
+                    Don&apos;t see your CRM? <a href="#" className="text-primary-600 hover:text-primary-700">Request an integration</a>
                   </p>
                 </div>
               </div>
