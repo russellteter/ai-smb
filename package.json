@@ -16,7 +16,8 @@
     "test": "pnpm -r run test",
     "migrate": "pnpm -r run migrate",
     "seed": "pnpm -r run seed",
-    "evals": "pnpm -r run evals"
+    "evals": "pnpm -r run evals",
+    "start": "pnpm -C apps/api start"
   }
 }
 
