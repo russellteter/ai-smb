@@ -1,210 +1,277 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
+import { Header } from '@/components/layout/header'
+import { AdvancedSearch } from '@/components/search/advanced-search'
+import { StreamStatus } from '@/components/streaming/stream-status'
+import { LiveFeed } from '@/components/streaming/live-feed'
+import { LeadTable } from '@/components/leads/lead-table'
+import { LeadDetailPanel } from '@/components/leads/lead-detail-panel'
+import { ContactModal } from '@/components/contact/contact-modal'
+import { ExportModal } from '@/components/export/export-modal'
+import { MobileNavigation, MobileActionBar, MobileFloatingButton } from '@/components/mobile/mobile-navigation'
+import { MobileLeadCard } from '@/components/mobile/mobile-cards'
+import { FloatingElements } from '@/components/ui/floating-elements'
+import { AnimatedGradient } from '@/components/ui/animated-gradient'
+import { Plus, Search, Filter, Download, Mail } from 'lucide-react'
+import { Lead, SearchJob } from '@/types'
 
-interface SearchJob {
-  job_id: string;
-  dsl: any;
-  status: string;
-}
-
-interface Lead {
-  rank: number;
-  score: number;
-  name: string;
-  city: string;
-  state: string;
-  website: string | null;
-  phone: string;
-  signals: Record<string, boolean>;
-  owner: string;
-  review_count: number;
-}
+// Mock data for demonstration
+const mockLeads: Lead[] = [
+  {
+    id: '1',
+    name: 'TechCorp Solutions',
+    website: 'https://techcorp.com',
+    location: 'San Francisco, CA',
+    industry: 'SaaS & Software',
+    size: '50-200 employees',
+    revenue: '$10M-$50M',
+    score: 85,
+    signals: ['No AI tools detected', 'High growth trajectory', 'Recent funding round'],
+    phone: '+1 (555) 123-4567',
+    email: 'contact@techcorp.com',
+    lastUpdated: new Date(),
+    status: 'new',
+    contacts: [
+      { name: 'John Smith', title: 'CEO', email: 'john@techcorp.com', phone: '+1 (555) 123-4567' },
+      { name: 'Sarah Johnson', title: 'CTO', email: 'sarah@techcorp.com' }
+    ],
+    technologies: ['React', 'Node.js', 'MongoDB', 'Stripe'],
+    socialLinks: {
+      linkedin: 'https://linkedin.com/company/techcorp',
+      twitter: 'https://twitter.com/techcorp'
+    }
+  },
+  {
+    id: '2',
+    name: 'DataFlow Analytics',
+    website: 'https://dataflow.io',
+    location: 'Austin, TX',
+    industry: 'Data Analytics',
+    size: '10-50 employees',
+    revenue: '$1M-$10M',
+    score: 72,
+    signals: ['Manual reporting processes', 'Growing team', 'Looking for automation'],
+    email: 'hello@dataflow.io',
+    lastUpdated: new Date(),
+    status: 'new',
+    contacts: [
+      { name: 'Mike Chen', title: 'Founder', email: 'mike@dataflow.io' }
+    ],
+    technologies: ['Python', 'PostgreSQL', 'Tableau']
+  }
+]
 
 export default function Home() {
-  const [prompt, setPrompt] = useState('');
-  const [searchJob, setSearchJob] = useState<SearchJob | null>(null);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [searchJob, setSearchJob] = useState<SearchJob>({ id: '', status: 'idle' })
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [contactLeads, setContactLeads] = useState<Lead[]>([])
+  const [exportLeads, setExportLeads] = useState<Lead[]>([])
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set())
 
-  const handleSearch = async () => {
-    if (!prompt.trim()) return;
+  const handleSearch = (query: string, filters: any[]) => {
+    console.log('Starting search with query:', query, 'and filters:', filters)
     
-    setLoading(true);
-    setError('');
-    setLeads([]);
-    
-    try {
-      // First, parse the prompt
-      const parseResponse = await fetch('/api/parse_prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      
-      if (!parseResponse.ok) {
-        throw new Error('Failed to parse prompt');
+    setSearchJob({
+      id: Date.now().toString(),
+      status: 'streaming',
+      metrics: {
+        totalFound: 0,
+        processed: 0,
+        enriched: 0,
+        qualified: 0,
+        speed: 2.3,
+        eta: 45
       }
-      
-      const parseResult = await parseResponse.json();
-      
-      // Then start a search job
-      const searchResponse = await fetch('/api/search_jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dsl: parseResult.dsl })
-      });
-      
-      if (!searchResponse.ok) {
-        throw new Error('Failed to start search job');
-      }
-      
-      const searchResult: SearchJob = await searchResponse.json();
-      setSearchJob(searchResult);
-      
-      // Start listening to the stream
-      const eventSource = new EventSource(`/api/search_jobs/${searchResult.job_id}/stream`);
-      
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('Stream event:', data);
-        
-        if (data.type === 'lead:add' && data.business) {
-          // Add lead to the list
-          const newLead: Lead = {
-            rank: leads.length + 1,
-            score: Math.floor(Math.random() * 100), // Mock score for now
-            name: data.business.name,
-            city: data.business.formatted_address?.split(',')[1]?.trim() || 'Unknown',
-            state: data.business.formatted_address?.split(',')[2]?.trim().split(' ')[0] || 'Unknown',
-            website: data.business.website || null,
-            phone: data.business.formatted_phone_number || '',
-            signals: {
-              no_website: !data.business.website,
-              has_chatbot: false, // Mock for now
-              has_online_booking: false, // Mock for now
-              owner_identified: false // Mock for now
-            },
-            owner: 'Unknown',
-            review_count: 0
-          };
-          
-          setLeads(prev => [...prev, newLead]);
-        }
-        
-        if (data.type === 'job:complete') {
-          eventSource.close();
-          setLoading(false);
-        }
-      };
-      
-      eventSource.onerror = () => {
-        eventSource.close();
-        setLoading(false);
-        setError('Stream connection failed');
-      };
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setLoading(false);
-    }
-  };
+    })
 
-  const testHealth = async () => {
-    try {
-      const response = await fetch('/health');
-      const result = await response.json();
-      alert(`Health check: ${JSON.stringify(result, null, 2)}`);
-    } catch (err) {
-      alert(`Health check failed: ${err}`);
-    }
-  };
+    // Simulate streaming results
+    setTimeout(() => {
+      setLeads(mockLeads)
+      setSearchJob(prev => ({
+        ...prev,
+        status: 'completed',
+        metrics: {
+          ...prev.metrics!,
+          totalFound: mockLeads.length,
+          processed: mockLeads.length,
+          enriched: mockLeads.length,
+          qualified: mockLeads.filter(l => l.score >= 70).length,
+        }
+      }))
+    }, 3000)
+  }
+
+  const handleContactLeads = (leads: Lead[]) => {
+    setContactLeads(leads)
+    setShowContactModal(true)
+  }
+
+  const handleExportLeads = (leads: Lead[]) => {
+    setExportLeads(leads)
+    setShowExportModal(true)
+  }
+
+  const handleSendMessage = (method: string, message: string, leads: Lead[]) => {
+    console.log('Sending message via', method, 'to', leads.length, 'leads:', message)
+    setShowContactModal(false)
+    // Here you would integrate with your backend API
+  }
+
+  const handleExport = (format: string, fields: string[], leads: Lead[]) => {
+    console.log('Exporting', leads.length, 'leads as', format, 'with fields:', fields)
+    setShowExportModal(false)
+    // Here you would integrate with your backend API
+  }
+
+  const mobileActions = [
+    { icon: Search, label: 'Search', onClick: () => {}, variant: 'primary' as const },
+    { icon: Filter, label: 'Filter', onClick: () => {}, variant: 'secondary' as const },
+    { icon: Download, label: 'Export', onClick: () => handleExportLeads(leads), variant: 'secondary' as const },
+  ]
 
   return (
-    <div className="container">
-      <h1 style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        Mothership Leads - SMB Lead Finder
-      </h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 relative">
+      {/* Background Elements */}
+      <FloatingElements count={3} size="lg" color="primary" />
+      <AnimatedGradient variant="mesh" opacity={0.1} className="fixed inset-0 pointer-events-none" />
       
-      <div className="card">
-        <h2>Test API Connection</h2>
-        <button className="button" onClick={testHealth}>
-          Test Health Endpoint
-        </button>
+      {/* Mobile Navigation */}
+      <MobileNavigation currentPage="dashboard" />
+      
+      {/* Desktop Header */}
+      <div className="hidden md:block">
+        <Header />
       </div>
       
-      <div className="card">
-        <h2>Search for Leads</h2>
-        <textarea 
-          className="input"
-          placeholder="Enter your search prompt (e.g., 'dentists in Columbia, SC with no chat widget')"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          rows={3}
-          style={{ height: 'auto', minHeight: '80px' }}
-        />
-        <button 
-          className="button" 
-          onClick={handleSearch}
-          disabled={loading || !prompt.trim()}
-        >
-          {loading ? 'Searching...' : 'Search Leads'}
-        </button>
-        
-        {error && (
-          <div style={{ color: 'red', marginTop: '1rem' }}>
-            Error: {error}
+      {/* Main Content */}
+      <main className="pt-16 md:pt-0">
+        <div className="container-app py-6 md:py-8">
+          {/* Welcome Section */}
+          <div className="text-center space-y-4 mb-8">
+            <h1 className="text-display gradient-text">Find Your Next Best Customers</h1>
+            <p className="text-body-lg max-w-2xl mx-auto text-balance">
+              Use natural language and advanced filters to discover SMB leads with specific characteristics,
+              missing technologies, or growth opportunities.
+            </p>
           </div>
-        )}
-        
-        {searchJob && (
-          <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f0f0', borderRadius: '4px' }}>
-            <h3>Search Job Created</h3>
-            <p><strong>Job ID:</strong> {searchJob.job_id}</p>
-            <p><strong>Status:</strong> {searchJob.status}</p>
-            <p><strong>DSL:</strong> {JSON.stringify(searchJob.dsl, null, 2)}</p>
+
+          {/* Advanced Search */}
+          <div className="mb-8">
+            <AdvancedSearch onSearch={handleSearch} />
           </div>
-        )}
-      </div>
-      
-      {leads.length > 0 && (
-        <div className="card">
-          <h2>Leads Found ({leads.length})</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #ccc' }}>
-                  <th style={{ padding: '0.5rem', textAlign: 'left' }}>Rank</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'left' }}>Score</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'left' }}>Name</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'left' }}>Location</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'left' }}>Website</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'left' }}>Phone</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((lead, index) => (
-                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '0.5rem' }}>{lead.rank}</td>
-                    <td style={{ padding: '0.5rem' }}>{lead.score}</td>
-                    <td style={{ padding: '0.5rem' }}>{lead.name}</td>
-                    <td style={{ padding: '0.5rem' }}>{lead.city}, {lead.state}</td>
-                    <td style={{ padding: '0.5rem' }}>
-                      {lead.website ? (
-                        <a href={lead.website} target="_blank" rel="noopener noreferrer">
-                          {lead.website}
-                        </a>
-                      ) : 'No website'}
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>{lead.phone || 'No phone'}</td>
-                  </tr>
+
+          {/* Results Section */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Stream Status */}
+            {searchJob.status !== 'idle' && (
+              <div className="xl:col-span-1">
+                <StreamStatus
+                  status={searchJob.status}
+                  metrics={searchJob.metrics}
+                  message="Analyzing businesses and enriching data..."
+                />
+              </div>
+            )}
+
+            {/* Results */}
+            <div className={`xl:col-span-${searchJob.status !== 'idle' ? '3' : '4'}`}>
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                {leads.length > 0 && (
+                  <LeadTable
+                    leads={leads}
+                    onContact={handleContactLeads}
+                    onExport={handleExportLeads}
+                  />
+                )}
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4">
+                {leads.map((lead) => (
+                  <MobileLeadCard
+                    key={lead.id}
+                    lead={lead}
+                    onSelect={setSelectedLead}
+                    onContact={(lead) => handleContactLeads([lead])}
+                    onSave={(lead) => console.log('Save lead:', lead)}
+                    onShare={(lead) => console.log('Share lead:', lead)}
+                  />
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Empty State */}
+              {leads.length === 0 && searchJob.status === 'idle' && (
+                <div className="text-center py-12 text-gray-500">
+                  <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary-100 to-accent-purple/10 flex items-center justify-center">
+                    <Search className="w-10 h-10 text-primary-600" />
+                  </div>
+                  <h3 className="text-heading-4 mb-2">Ready to Find Leads</h3>
+                  <p className="text-body max-w-md mx-auto">
+                    Use the search above to start finding your next best customers.
+                    Try something like "SaaS companies in SF without AI tools".
+                  </p>
+                </div>
+              )}
+
+              {/* Live Feed for Streaming */}
+              {searchJob.status === 'streaming' && (
+                <div className="mt-6">
+                  <LiveFeed
+                    leads={leads.map(lead => ({
+                      ...lead,
+                      timestamp: new Date()
+                    }))}
+                    isStreaming={searchJob.status === 'streaming'}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
+      </main>
+
+      {/* Mobile Action Bar */}
+      {leads.length > 0 && (
+        <div className="md:hidden">
+          <MobileActionBar actions={mobileActions} />
+          <MobileFloatingButton
+            icon={Plus}
+            onClick={() => console.log('Add new search')}
+          />
+        </div>
       )}
+
+      {/* Modals */}
+      <ContactModal
+        leads={contactLeads}
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        onSend={handleSendMessage}
+      />
+
+      <ExportModal
+        leads={exportLeads}
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExport}
+      />
+
+      {/* Lead Detail Panel */}
+      <LeadDetailPanel
+        lead={selectedLead}
+        isOpen={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onUpdate={(updatedLead) => {
+          setLeads(prev => prev.map(lead => 
+            lead.id === updatedLead.id ? updatedLead : lead
+          ))
+        }}
+      />
     </div>
-  );
+  )
 }

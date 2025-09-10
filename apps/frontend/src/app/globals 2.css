@@ -58,18 +58,15 @@
 
 @layer components {
   .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass;
   }
   
   .glass-dark {
-    @apply bg-gray-900/70 backdrop-blur-xl border border-gray-700/20;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    @apply bg-gray-900/70 backdrop-blur-xl border border-gray-700/20 shadow-glass;
   }
   
   .glass-surface {
-    @apply bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl border border-white/50;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 10px rgba(0, 0, 0, 0.1);
+    @apply bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-2xl border border-white/50 shadow-float;
   }
   
   .gradient-border {
@@ -104,11 +101,7 @@
   }
   
   .card-base {
-    @apply glass rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5;
-  }
-  
-  .card-base:hover {
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 10px rgba(0, 0, 0, 0.1);
+    @apply glass rounded-2xl p-6 transition-all duration-300 hover:shadow-float hover:-translate-y-0.5;
   }
   
   .card-interactive {
