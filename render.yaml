@@ -1,4 +1,26 @@
 services:
+  - type: pgsql
+    name: mothership-database
+    region: oregon
+    plan: starter
+    databaseName: mothership
+    databaseUser: mothership
+
+  - type: job
+    name: mothership-migrate
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile
+    startCommand: pnpm migrate
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mothership-database
+          property: connectionString
+    
   - type: redis
     name: mothership-redis
     region: oregon
@@ -19,7 +41,9 @@ services:
       - key: PORT
         value: 3001
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: mothership-database
+          property: connectionString
       - key: REDIS_URL
         fromService:
           type: redis
@@ -54,7 +78,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: mothership-database
+          property: connectionString
       - key: REDIS_URL
         fromService:
           type: redis
