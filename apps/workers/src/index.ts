@@ -1,10 +1,28 @@
 import { Queue, Worker, QueueEvents, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import 'dotenv/config';
 import { z } from 'zod';
 import { Client } from 'pg';
 
-const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+// Load dotenv only in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
+// Validate required environment variables
+if (!process.env.REDIS_URL) {
+  console.error('ERROR: REDIS_URL environment variable is required');
+  process.exit(1);
+}
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL environment variable is required');
+  process.exit(1);
+}
+
+// Log Redis URL for debugging (without exposing password)
+const redisUrl = process.env.REDIS_URL;
+console.log('Workers connecting to Redis:', redisUrl.replace(/:([^@]+)@/, ':****@'));
+
+const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false
 });
@@ -63,7 +81,10 @@ new Worker('enrich', async (job) => {
 }, { connection });
 
 new Worker('score', async (job) => {
-  const dbUrl = process.env.DATABASE_URL || `postgres://${process.env.USER}@localhost:5432/mothership`;
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    throw new Error('DATABASE_URL environment variable is required');
+  }
   const client = new Client({ connectionString: dbUrl });
   await client.connect();
   const b = job.data.business as { name: string; formatted_address?: string; website?: string; formatted_phone_number?: string };

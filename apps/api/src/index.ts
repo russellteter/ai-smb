@@ -6,17 +6,34 @@ import { LeadQuerySchema, ParsePromptRequestSchema } from '@mothership/shared';
 import OpenAI from 'openai';
 import { Queue, QueueEvents } from 'bullmq';
 import IORedis from 'ioredis';
-import 'dotenv/config';
+// Load dotenv only in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 import { Client } from 'pg';
 import { toCsv } from '@mothership/shared';
 
 const app = Fastify({ logger: true });
 
+// Validate required environment variables
+if (!process.env.REDIS_URL) {
+  console.error('ERROR: REDIS_URL environment variable is required');
+  process.exit(1);
+}
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL environment variable is required');
+  process.exit(1);
+}
+
+// Log Redis URL for debugging (without exposing password)
+const redisUrl = process.env.REDIS_URL;
+console.log('Connecting to Redis:', redisUrl.replace(/:([^@]+)@/, ':****@'));
+
 await app.register(cors, { origin: true });
 await app.register(sse);
 
-// BullMQ setup
-const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+// BullMQ setup - NO FALLBACK
+const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false
 });
@@ -122,7 +139,11 @@ app.get('/api/export', async (req, reply) => {
     reply.code(400);
     return { error: 'search_job_id required' };
   }
-  const dbUrl = process.env.DATABASE_URL || `postgres://${process.env.USER}@localhost:5432/mothership`;
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) {
+    reply.code(500);
+    return { error: 'Database configuration error' };
+  }
   const client = new Client({ connectionString: dbUrl });
   await client.connect();
   const res = await client.query(
