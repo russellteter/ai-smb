@@ -17,7 +17,9 @@
     "migrate": "pnpm -r run migrate",
     "seed": "pnpm -r run seed",
     "evals": "pnpm -r run evals",
-    "start": "pnpm -C apps/api start"
+    "start:api": "pnpm -C apps/api start",
+    "start:frontend": "cd apps/frontend && node node_modules/.bin/next start -p ${PORT:-3000}",
+    "start:workers": "pnpm -C apps/workers start"
   }
 }
 

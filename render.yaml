@@ -57,7 +57,7 @@ services:
     plan: starter
     region: oregon
     buildCommand: pnpm install --no-frozen-lockfile && pnpm -C apps/frontend run build
-    startCommand: cd apps/frontend && npx next start -p $PORT
+    startCommand: bash apps/frontend/start.sh
     autoDeploy: true
     envVars:
       - key: NODE_ENV

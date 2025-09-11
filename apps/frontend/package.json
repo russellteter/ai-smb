@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p ${PORT:-3000}",
+    "start": "bash start.sh || next start -p ${PORT:-3000}",
     "start:prod": "next start -p ${PORT:-3000}",
+    "start:standalone": "node .next/standalone/apps/frontend/server.js",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "echo 'noop'",
