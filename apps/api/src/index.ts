@@ -211,7 +211,7 @@ app.post('/api/parse_prompt', async (req, reply) => {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   let warnings: string[] = [];
   
-  // Enhanced prompt with complete schema definition
+  // Enhanced prompt with complete schema definition and state mapping
   const system = `You are a lead query parser. Convert user prompts into a LeadQuery DSL JSON object.
 
 The DSL must strictly match this schema:
@@ -220,7 +220,7 @@ The DSL must strictly match this schema:
   "vertical": "dentist" | "law_firm" | "contractor" | "hvac" | "roofing" | "generic",
   "geo": {
     "city": string,
-    "state": string (2 letter code),
+    "state": string (MUST be exactly 2 letter code like "SC", "CA", "TX"),
     "radius_km": number (optional, default 10, max 200)
   },
   "constraints": {
@@ -230,20 +230,40 @@ The DSL must strictly match this schema:
   "exclusions": array of strings or objects (optional),
   "result_size": { "target": number (default 50, max 500) },
   "sort_by": "score_desc",
-  "lead_profile": string (default "ai_services_buyer"),
+  "lead_profile": string (REQUIRED, default "ai_services_buyer"),
   "output": { "contract": "csv" | "json" },
   "notify": { "on_complete": boolean },
   "compliance_flags": array of strings
 }
 
-Rules:
+CRITICAL Rules:
 1. Output ONLY valid JSON
-2. Always include required fields: version, vertical, geo
-3. Use conservative defaults when uncertain
-4. Include a "warnings" array if you made assumptions
-5. For US states, use 2-letter codes (CA, NY, TX, etc.)`;
+2. Always include ALL required fields: version, vertical, geo, lead_profile
+3. state MUST be exactly 2 letters (convert "South Carolina" to "SC", "California" to "CA", etc.)
+4. lead_profile is REQUIRED - always include it (default: "ai_services_buyer")
+5. Parse location carefully - extract city and state separately
+6. For appointment booking/website features, add to constraints.must
+
+State abbreviation examples:
+- South Carolina = SC
+- North Carolina = NC  
+- California = CA
+- Texas = TX
+- New York = NY
+- Florida = FL`;
   
-  const user = `Convert this prompt to LeadQuery DSL: "${body.data.prompt}"`;
+  const user = `Convert this prompt to LeadQuery DSL: "${body.data.prompt}"
+  
+Example: "Dentists in Charleston, South Carolina without an appointment booker" should produce:
+{
+  "version": 1,
+  "vertical": "dentist",
+  "geo": { "city": "Charleston", "state": "SC" },
+  "lead_profile": "ai_services_buyer",
+  "constraints": { "must": [{"key": "no_appointment_booker", "value": true}] },
+  "sort_by": "score_desc",
+  "output": { "contract": "csv" }
+}`;
   
   try {
     app.log.info({ prompt: body.data.prompt }, 'Sending prompt to OpenAI');
@@ -283,8 +303,14 @@ Rules:
         ...dslCandidate,
         version: 1,
         vertical: dslCandidate.vertical || 'generic',
-        geo: dslCandidate.geo || { city: 'San Francisco', state: 'CA' },
-        lead_profile: dslCandidate.lead_profile || 'ai_services_buyer'
+        geo: {
+          city: dslCandidate.geo?.city || 'San Francisco',
+          state: dslCandidate.geo?.state?.substring(0, 2).toUpperCase() || 'CA',
+          radius_km: dslCandidate.geo?.radius_km || 10
+        },
+        lead_profile: dslCandidate.lead_profile || 'ai_services_buyer',
+        sort_by: dslCandidate.sort_by || 'score_desc',
+        output: dslCandidate.output || { contract: 'csv' }
       };
       
       const retryValidation = LeadQuerySchema.safeParse(fixedDsl);

@@ -24,8 +24,9 @@ import {
 import { Lead, SearchJob } from '@/types'
 import { cn } from '@/lib/utils'
 import { SkeletonLeadCard, SkeletonStats, SkeletonTable } from '@/components/ui/skeleton'
+import { parsePrompt, createSearchJob, SearchStreamClient, transformAPILead } from '@/lib/api'
 
-// Mock data for demonstration
+// Mock data removed - using real API now
 const mockLeads: Lead[] = [
   {
     id: '1',
@@ -98,45 +99,106 @@ function HomePage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  // Initialize with mock data after mount to avoid hydration issues
+  // Initialize component after mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLeads(mockLeads)
-      setIsLoading(false)
-    }, 500)
-    return () => clearTimeout(timer)
+    // Don't load mock data - wait for real searches
+    setIsLoading(false)
   }, [])
 
   const handleStartSearch = async (prompt: string) => {
     setIsStreaming(true)
     setError(null)
-    setSearchJob({
-      ...mockSearchJob,
-      prompt,
-      status: 'streaming',
-      progress: 0
-    })
+    setLeads([]) // Clear any existing leads
+    
+    let streamClient: SearchStreamClient | null = null
     
     try {
-      // Simulate API call with better error handling
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Step 1: Parse the prompt to get DSL
+      console.log('Parsing prompt:', prompt)
+      const parseResult = await parsePrompt(prompt)
       
-      // Simulate streaming progress
-      let progress = 0
-      const interval = setInterval(() => {
-      progress += Math.random() * 15
-      if (progress >= 100) {
-        setIsStreaming(false)
-        setSearchJob(prev => prev ? { ...prev, status: 'completed', progress: 100 } : null)
-        clearInterval(interval)
-      } else {
-        setSearchJob(prev => prev ? { ...prev, progress: Math.min(progress, 99) } : null)
+      if (parseResult.warnings && parseResult.warnings.length > 0) {
+        console.warn('Parse warnings:', parseResult.warnings)
       }
-    }, 1000)
-    } catch (err) {
-      setError('Failed to start search. Please try again.')
-      setIsStreaming(false)
+      
+      // Step 2: Create search job with the DSL
+      console.log('Creating search job with DSL:', parseResult.dsl)
+      const searchResult = await createSearchJob(undefined, parseResult.dsl)
+      
+      // Step 3: Set up search job tracking
+      setSearchJob({
+        id: searchResult.job_id,
+        prompt,
+        status: 'streaming',
+        progress: 0,
+        totalLeads: parseResult.dsl.result_size?.target || 50,
+        processedLeads: 0,
+        startedAt: new Date(),
+        currentStep: 'Searching for businesses...'
+      })
+      
+      // Step 4: Connect to SSE stream for real-time updates
+      streamClient = new SearchStreamClient(searchResult.job_id)
+      
+      streamClient.connect({
+        onProgress: (data) => {
+          console.log('Progress update:', data)
+          
+          // Update search job progress
+          setSearchJob(prev => prev ? {
+            ...prev,
+            progress: data.processed ? (data.processed / (data.total || 50)) * 100 : prev.progress,
+            processedLeads: data.processed || prev.processedLeads,
+            totalLeads: data.total || prev.totalLeads,
+            currentStep: data.message || prev.currentStep
+          } : null)
+          
+          // Add new leads if they come with progress
+          if (data.leads && Array.isArray(data.leads)) {
+            const newLeads = data.leads.map((lead: any) => transformAPILead(lead))
+            setLeads(prev => [...prev, ...newLeads])
+          }
+        },
+        
+        onLead: (leadData) => {
+          console.log('New lead:', leadData)
+          const transformedLead = transformAPILead(leadData)
+          setLeads(prev => [...prev, transformedLead])
+        },
+        
+        onComplete: (summary) => {
+          console.log('Search completed:', summary)
+          setIsStreaming(false)
+          setSearchJob(prev => prev ? {
+            ...prev,
+            status: 'completed',
+            progress: 100,
+            currentStep: 'Search complete!'
+          } : null)
+        },
+        
+        onError: (error) => {
+          console.error('Stream error:', error)
+          setError(error.message || 'Search failed. Please try again.')
+          setIsStreaming(false)
+          setSearchJob(prev => prev ? {
+            ...prev,
+            status: 'failed',
+            currentStep: 'Search failed'
+          } : null)
+        }
+      })
+      
+    } catch (err: any) {
       console.error('Search error:', err)
+      setError(err.message || 'Failed to start search. Please try again.')
+      setIsStreaming(false)
+      setSearchJob(null)
+      
+      // Disconnect stream if connected
+      if (streamClient) {
+        streamClient.disconnect()
+      }
     }
   }
 

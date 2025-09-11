@@ -7,45 +7,45 @@
 
 @layer base {
   :root {
-    /* Enhanced Design Tokens */
-    --gradient-angle: 135deg;
-    --color-primary: 59 130 246;
-    --color-secondary: 139 92 246;
-    --color-accent: 236 72 153;
-    --color-success: 34 197 94;
-    --color-warning: 245 158 11;
-    --color-error: 239 68 68;
+    /* CRM Design Tokens */
+    --color-primary: 37 99 235; /* Blue for primary actions */
+    --color-success: 34 197 94; /* Green for success */
+    --color-warning: 251 146 60; /* Orange for warnings */
+    --color-error: 239 68 68; /* Red for errors */
     
-    /* Advanced Visual Effects */
-    --blur-strength: 24px;
-    --blur-light: 12px;
-    --glow-strength: 0 0 40px rgba(59, 130, 246, 0.3);
-    --shadow-elevation-1: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-elevation-2: 0 4px 16px rgba(0, 0, 0, 0.12);
-    --shadow-elevation-3: 0 8px 32px rgba(0, 0, 0, 0.16);
+    /* CRM Background Colors */
+    --bg-main: 10 11 13; /* #0A0B0D - Main dark background */
+    --bg-secondary: 18 20 23; /* #121417 - Secondary panels */
+    --bg-tertiary: 26 28 33; /* #1A1C21 - Cards/rows */
+    --bg-hover: 32 35 41; /* #202329 - Hover states */
     
-    /* Animation System */
-    --animation-duration: 0.3s;
-    --animation-duration-fast: 0.15s;
-    --animation-duration-slow: 0.6s;
-    --animation-timing: cubic-bezier(0.4, 0, 0.2, 1);
-    --animation-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* Border Colors */
+    --border-subtle: 38 42 48; /* #262A30 - Subtle borders */
+    --border-default: 48 52 60; /* #30343C - Default borders */
     
-    /* Professional Spacing */
-    --space-unit: 8px;
-    --border-radius: 12px;
-    --border-radius-sm: 8px;
-    --border-radius-lg: 16px;
-    --border-radius-xl: 24px;
+    /* Simple Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.6);
+    
+    /* Compact Spacing */
+    --space-unit: 4px;
+    --border-radius: 6px;
+    --border-radius-sm: 4px;
+    --border-radius-lg: 8px;
   }
   
-  /* Dark Mode Variables */
+  /* Force dark mode as default */
+  html {
+    color-scheme: dark;
+  }
+  
   .dark {
-    --color-primary: 96 165 250;
-    --color-secondary: 167 139 250;
-    --color-accent: 244 114 182;
-    --blur-strength: 32px;
-    --glow-strength: 0 0 60px rgba(96, 165, 250, 0.4);
+    /* Same as root for consistency */
+    --color-primary: 37 99 235;
+    --color-success: 34 197 94;
+    --color-warning: 251 146 60;
+    --color-error: 239 68 68;
   }
   
   * {
