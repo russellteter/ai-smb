@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import dynamic from 'next/dynamic'
+import { useState, useEffect } from 'react'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Header } from '@/components/layout/header'
 import { AdvancedSearch } from '@/components/search/advanced-search'
@@ -13,10 +12,7 @@ import { ContactModal } from '@/components/contact/contact-modal'
 import { ExportModal } from '@/components/export/export-modal'
 import { MobileNavigation, MobileActionBar, MobileFloatingButton } from '@/components/mobile/mobile-navigation'
 import { MobileLeadCard } from '@/components/mobile/mobile-cards'
-import { FloatingElements } from '@/components/ui/floating-elements'
-import { AnimatedGradient } from '@/components/ui/animated-gradient'
 import { StatsCard, StatsGrid } from '@/components/ui/stats-card'
-import { ProgressChart, ProgressBar } from '@/components/ui/progress-chart'
 import { Button } from '@/components/ui/button'
 import { 
   Plus, Search, Filter, Download, Mail, TrendingUp, Users, Target, Zap,
@@ -87,16 +83,9 @@ const mockSearchJob: SearchJob = {
   currentStep: 'Enriching lead data with signals'
 }
 
-// Dynamically import heavy components
-const AnimatedGradient = dynamic(
-  () => import('@/components/ui/animated-gradient').then(mod => mod.AnimatedGradient),
-  { ssr: false, loading: () => <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100" /> }
-)
-
-const FloatingElements = dynamic(
-  () => import('@/components/ui/floating-elements').then(mod => mod.FloatingElements),
-  { ssr: false }
-)
+// Import UI components directly for now to avoid dynamic import issues
+import { AnimatedGradient } from '@/components/ui/animated-gradient'
+import { FloatingElements } from '@/components/ui/floating-elements'
 
 function HomePage() {
   const [isStreaming, setIsStreaming] = useState(false)

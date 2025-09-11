@@ -10,7 +10,14 @@
     "start:standalone": "node .next/standalone/apps/frontend/server.js",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'noop'",
+    "test": "playwright test",
+    "test:e2e": "playwright test tests/e2e",
+    "test:visual": "playwright test tests/visual",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:codegen": "playwright codegen",
     "evals": "echo 'noop'"
   },
   "dependencies": {
