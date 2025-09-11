@@ -13,6 +13,9 @@ import { ExportModal } from '@/components/export/export-modal'
 import { MobileNavigation, MobileActionBar, MobileFloatingButton } from '@/components/mobile/mobile-navigation'
 import { MobileLeadCard } from '@/components/mobile/mobile-cards'
 import { StatsCard, StatsGrid } from '@/components/ui/stats-card'
+import { AnimatedGradient } from '@/components/ui/animated-gradient'
+import { FloatingElements } from '@/components/ui/floating-elements'
+import { ProgressChart, ProgressBar } from '@/components/ui/progress-chart'
 import { Button } from '@/components/ui/button'
 import { 
   Plus, Search, Filter, Download, Mail, TrendingUp, Users, Target, Zap,
@@ -82,10 +85,6 @@ const mockSearchJob: SearchJob = {
   startedAt: new Date(),
   currentStep: 'Enriching lead data with signals'
 }
-
-// Import UI components directly for now to avoid dynamic import issues
-import { AnimatedGradient } from '@/components/ui/animated-gradient'
-import { FloatingElements } from '@/components/ui/floating-elements'
 
 function HomePage() {
   const [isStreaming, setIsStreaming] = useState(false)
@@ -308,7 +307,7 @@ function HomePage() {
                       <span className="text-sm text-gray-500">{searchJob.processedLeads}/{searchJob.totalLeads} processed</span>
                     </div>
                     <ProgressBar 
-                      value={searchJob.progress} 
+                      value={searchJob.progress || 0} 
                       variant="gradient" 
                       size="lg" 
                       animated 
@@ -332,7 +331,7 @@ function HomePage() {
                       </div>
                       <div className="text-center">
                         <ProgressChart 
-                          value={searchJob.progress} 
+                          value={searchJob.progress || 0} 
                           size="sm" 
                           variant="gradient" 
                           label="Scoring" 
@@ -357,22 +356,21 @@ function HomePage() {
                         <SkeletonTable />
                       ) : (
                         <LeadTable 
-                    leads={leads}
-                        onContact={(selectedLeads) => {
-                          if (selectedLeads.length > 0) {
-                            handleContactLead(selectedLeads[0])
-                          }
-                        }}
-                        onExport={(selectedLeads) => {
-                          console.log('Exporting leads:', selectedLeads)
-                          setShowExportModal(true)
-                        }}
+                          leads={leads}
+                          onContact={(selectedLeads) => {
+                            if (selectedLeads.length > 0) {
+                              handleContactLead(selectedLeads[0])
+                            }
+                          }}
+                          onExport={(selectedLeads) => {
+                            console.log('Exporting leads:', selectedLeads)
+                            setShowExportModal(true)
+                          }}
                         />
                       )}
                     </div>
                   </div>
-                </div>
-                
+                  
                   {selectedLead && (
                     <div className="col-span-4">
                       <div className="glass-card p-6">
@@ -388,8 +386,6 @@ function HomePage() {
                     </div>
                   )}
                 </div>
-              </div>
-
               </div>
               
               {/* Enhanced Quick Actions */}
@@ -439,12 +435,12 @@ function HomePage() {
                     ))
                   ) : (
                     leads.map(lead => (
-                    <MobileLeadCard
-                      key={lead.id}
-                      lead={lead}
-                      onSelect={() => setSelectedLead(lead)}
-                      onContact={() => handleContactLead(lead)}
-                    />
+                      <MobileLeadCard
+                        key={lead.id}
+                        lead={lead}
+                        onSelect={() => setSelectedLead(lead)}
+                        onContact={() => handleContactLead(lead)}
+                      />
                     ))
                   )}
                 </div>

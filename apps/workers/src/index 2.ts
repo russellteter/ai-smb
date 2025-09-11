@@ -432,252 +432,42 @@ const enrichWorker = new Worker('enrich', async (job) => {
   concurrency: 5 // Process multiple enrichments in parallel
 });
 
-// Enhanced scoring worker with intelligent lead scoring
-const scoreWorker = new Worker('score', async (job) => {
-  const { business, searchId, dsl, signals = [], placeId } = job.data;
-  
+new Worker('score', async (job) => {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
     throw new Error('DATABASE_URL environment variable is required');
   }
-  
   const client = new Client({ connectionString: dbUrl });
-  
-  try {
-    await client.connect();
-    
-    logger.info({ business: business.name, searchId }, 'Starting scoring');
-    
-    // Enhanced deduplication: by website, phone, or name+address
-    const existing = await client.query(
-      `SELECT id FROM business 
-       WHERE (website = $1 AND website IS NOT NULL) 
-          OR (phone = $2 AND phone IS NOT NULL)
-          OR (name = $3 AND address_json->>'city' = $4)
-       LIMIT 1`,
-      [
-        business.website ?? null, 
-        business.formatted_phone_number ?? null,
-        business.name,
-        parseAddress(business.formatted_address)?.city ?? null
-      ]
-    );
-    
-    const parsedAddress = parseAddress(business.formatted_address);
-    let businessId: string;
-    
-    if (existing.rows.length > 0) {
-      businessId = existing.rows[0].id as string;
-      logger.debug({ businessId, name: business.name }, 'Business already exists, updating');
-      
-      // Update existing business with latest data
-      await client.query(
-        `UPDATE business 
-         SET updated_at = CURRENT_TIMESTAMP,
-             website = COALESCE($1, website),
-             phone = COALESCE($2, phone)
-         WHERE id = $3`,
-        [business.website ?? null, business.formatted_phone_number ?? null, businessId]
-      );
-    } else {
-      // Insert new business
-      const ins = await client.query(
-        `INSERT INTO business (
-          id, name, website, phone, address_json, 
-          attributes_json, vertical, source
-        ) VALUES (
-          uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7
-        ) RETURNING id`,
-        [
-          business.name, 
-          business.website ?? null, 
-          business.formatted_phone_number ?? null, 
-          parsedAddress,
-          {
-            rating: business.rating,
-            review_count: business.user_ratings_total,
-            business_types: business.types,
-            hours: business.opening_hours,
-            place_id: placeId
-          },
-          dsl.vertical || 'generic',
-          'google_places'
-        ]
-      );
-      businessId = ins.rows[0].id as string;
-      logger.debug({ businessId, name: business.name }, 'New business created');
-    }
-    
-    // Store signals
-    for (const signal of signals) {
-      await client.query(
-        `INSERT INTO signal (
-          id, business_id, signal_type, signal_value, 
-          confidence_score, source, metadata_json
-        ) VALUES (
-          uuid_generate_v4(), $1, $2, $3, $4, $5, $6
-        ) ON CONFLICT DO NOTHING`,
-        [
-          businessId,
-          signal.type,
-          String(signal.value),
-          signal.confidence,
-          signal.source,
-          signal.metadata || {}
-        ]
-      );
-    }
-    
-    // Enhanced scoring algorithm
-    const scoreComponents = calculateScore(business, signals, dsl);
-    const totalScore = Math.min(100, Math.max(0, scoreComponents.total));
-    
-    // Check if lead already exists for this search
-    const existingLead = await client.query(
-      'SELECT id FROM lead_view WHERE search_job_id = $1 AND business_id = $2',
-      [searchId, businessId]
-    );
-    
-    if (existingLead.rows.length === 0) {
-      // Insert new lead view
-      await client.query(
-        `INSERT INTO lead_view (
-          id, search_job_id, business_id, score, 
-          score_breakdown_json, created_at
-        ) VALUES (
-          uuid_generate_v4(), $1, $2, $3, $4, CURRENT_TIMESTAMP
-        )`,
-        [searchId, businessId, totalScore, scoreComponents]
-      );
-      
-      logger.info({ 
-        business: business.name, 
-        score: totalScore,
-        breakdown: scoreComponents 
-      }, 'Lead scored and saved');
-    }
-    
-    // Emit progress event
-    await job.updateProgress({
-      type: 'lead:scored',
-      lead: {
-        id: businessId,
-        name: business.name,
-        score: totalScore,
-        signals: signals.length
-      }
-    });
-    
-  } catch (error) {
-    logger.error({ error, business: business.name }, 'Scoring failed');
-    throw error;
-  } finally {
-    await client.end();
-  }
-}, { 
-  connection,
-  concurrency: 10 // Process multiple scores in parallel
-});
-
-// Intelligent scoring algorithm
-function calculateScore(
-  business: any, 
-  signals: any[], 
-  dsl: any
-): any {
-  let ICP = 0; // Ideal Customer Profile match
-  let Pain = 0; // Pain points / opportunity
-  let Reachability = 0; // How easy to contact
-  let Engagement = 0; // Customer engagement level
-  let ComplianceRisk = 0; // Regulatory risks
-  
-  // ICP scoring based on vertical match
-  if (dsl.vertical !== 'generic') {
-    const businessTypes = business.types || [];
-    const verticalKeywords = {
-      dentist: ['dentist', 'dental', 'orthodontist'],
-      law_firm: ['lawyer', 'attorney', 'law', 'legal'],
-      contractor: ['contractor', 'construction', 'builder'],
-      hvac: ['hvac', 'heating', 'cooling', 'air_conditioning'],
-      roofing: ['roofing', 'roofer']
-    };
-    
-    const keywords = verticalKeywords[dsl.vertical as keyof typeof verticalKeywords] || [];
-    const matches = businessTypes.some((type: string) => 
-      keywords.some(keyword => type.toLowerCase().includes(keyword))
-    );
-    
-    ICP = matches ? 25 : 10;
+  await client.connect();
+  const b = job.data.business as { name: string; formatted_address?: string; website?: string; formatted_phone_number?: string };
+  // Simple dedupe: by website or (name+phone)
+  const existing = await client.query(
+    'SELECT id FROM business WHERE (website = $1 AND website IS NOT NULL) OR (name = $2 AND phone = $3) LIMIT 1',
+    [b.website ?? null, b.name, b.formatted_phone_number ?? null]
+  );
+  const parsedAddress = parseAddress(b.formatted_address);
+  let businessId: string;
+  if (existing.rows.length > 0) {
+    businessId = existing.rows[0].id as string;
   } else {
-    ICP = 15; // Generic search gets moderate ICP score
+    const ins = await client.query(
+      'INSERT INTO business (id, name, website, phone, address_json) VALUES (uuid_generate_v4(), $1, $2, $3, $4) RETURNING id',
+      [b.name, b.website ?? null, b.formatted_phone_number ?? null, parsedAddress]
+    );
+    businessId = ins.rows[0].id as string;
   }
-  
-  // Pain points scoring
-  const hasWebsite = signals.some(s => s.type === 'has_website' && s.value);
-  const hasBooking = signals.some(s => s.type === 'has_online_booking' && s.value);
-  const hasChat = signals.some(s => s.type === 'has_chat_widget' && s.value);
-  
-  if (!hasWebsite) {
-    Pain += 20; // No website = high pain
-  } else {
-    Pain += 5; // Has website but could improve
-    
-    if (!hasBooking) {
-      Pain += 10; // No online booking
-    }
-    
-    if (!hasChat) {
-      Pain += 10; // No chat widget
-    }
-  }
-  
-  // Reachability scoring
-  if (business.formatted_phone_number) {
-    Reachability += 15;
-  }
-  
-  if (business.website) {
-    Reachability += 10;
-  }
-  
-  if (business.opening_hours) {
-    Reachability += 5; // Has defined business hours
-  }
-  
-  // Engagement scoring
-  const rating = business.rating || 0;
-  const reviewCount = business.user_ratings_total || 0;
-  
-  if (reviewCount > 100) {
-    Engagement += 15; // High customer engagement
-  } else if (reviewCount > 50) {
-    Engagement += 10;
-  } else if (reviewCount > 10) {
-    Engagement += 5;
-  }
-  
-  if (rating >= 4.5) {
-    Engagement += 10; // Excellent rating
-  } else if (rating >= 4.0) {
-    Engagement += 5;
-  }
-  
-  // Compliance risk (negative scoring)
-  if (dsl.vertical === 'law_firm' || dsl.vertical === 'dentist') {
-    ComplianceRisk = 5; // Higher compliance requirements
-  }
-  
-  const total = ICP + Pain + Reachability + Engagement - ComplianceRisk;
-  
-  return {
-    ICP,
-    Pain,
-    Reachability,
-    Engagement,
-    ComplianceRisk,
-    total
-  };
-}
+  // Minimal score
+  const ICP = 20;
+  const Pain = b.website ? 10 : 20;
+  const Reachability = b.formatted_phone_number ? 15 : 5;
+  const ComplianceRisk = 0;
+  const total = Math.min(100, ICP + Pain + Reachability - ComplianceRisk);
+  await client.query(
+    'INSERT INTO lead_view (id, search_job_id, business_id, score, subscores_json, rank) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5)',
+    [job.data.searchId ?? null, businessId, total, { ICP, Pain, Reachability, ComplianceRisk }, 0]
+  );
+  await client.end();
+}, { connection });
 
 function parseAddress(formatted?: string | null) {
   if (!formatted) return null;
