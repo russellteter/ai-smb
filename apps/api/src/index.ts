@@ -29,7 +29,17 @@ if (!process.env.DATABASE_URL) {
 const redisUrl = process.env.REDIS_URL;
 console.log('Connecting to Redis:', redisUrl.replace(/:([^@]+)@/, ':****@'));
 
-await app.register(cors, { origin: true });
+// Configure CORS to allow frontend domains
+await app.register(cors, { 
+  origin: [
+    'https://mothership-frontend.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    true // Allow any origin for development
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+});
 await app.register(sse);
 
 // BullMQ setup - NO FALLBACK
@@ -288,6 +298,12 @@ Example: "Dentists in Charleston, South Carolina without an appointment booker" 
     // Extract DSL from response (handle both direct DSL and nested structure)
     const dslCandidate = parsed.dsl || parsed;
     delete dslCandidate.warnings; // Remove warnings from DSL object
+    
+    // HOTFIX: Ensure lead_profile is always present
+    if (!dslCandidate.lead_profile) {
+      dslCandidate.lead_profile = 'ai_services_buyer';
+      warnings.push('Added default lead_profile');
+    }
     
     // Apply defaults and validate
     const validated = LeadQuerySchema.safeParse(dslCandidate);

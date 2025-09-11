@@ -40,6 +40,7 @@ export default function HomePage() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'table' | 'board'>('dashboard')
 
   const handleStartSearch = async (prompt: string) => {
+    console.log('Starting search with prompt:', prompt)
     setIsStreaming(true)
     setError(null)
     setLeads([])
@@ -47,8 +48,17 @@ export default function HomePage() {
     let streamClient: SearchStreamClient | null = null
     
     try {
+      console.log('Calling parsePrompt API...')
       const parseResult = await parsePrompt(prompt)
+      console.log('Parse result:', parseResult)
+      
+      if (parseResult.warnings && parseResult.warnings.length > 0) {
+        console.warn('Parse warnings:', parseResult.warnings)
+      }
+      
+      console.log('Creating search job with DSL:', parseResult.dsl)
       const searchResult = await createSearchJob(undefined, parseResult.dsl)
+      console.log('Search job created:', searchResult)
       
       setSearchJob({
         id: searchResult.job_id,
@@ -102,9 +112,25 @@ export default function HomePage() {
       })
       
     } catch (err: any) {
-      setError(err.message || 'Failed to start search')
+      console.error('Search error details:', err)
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to start search'
+      
+      if (err.message?.includes('fetch')) {
+        errorMessage = 'Unable to connect to the API. Please check your connection and try again.'
+      } else if (err.message?.includes('CORS')) {
+        errorMessage = 'Cross-origin request blocked. This is a configuration issue.'
+      } else if (err.message?.includes('Parser returned invalid DSL')) {
+        errorMessage = 'Failed to understand your search query. Please try rephrasing.'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
       setIsStreaming(false)
       setSearchJob(null)
+      
       if (streamClient) {
         streamClient.disconnect()
       }
