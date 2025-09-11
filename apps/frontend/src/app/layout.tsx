@@ -1,17 +1,11 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/lib/theme-provider';
+import { Sidebar } from '@/components/layout/sidebar';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Mothership Leads - AI-Powered SMB Discovery',
-  description: 'Professional lead generation platform for discovering and qualifying SMB opportunities with AI-powered insights',
-  keywords: 'lead generation, SMB, AI, sales intelligence, B2B, outreach',
-  authors: [{ name: 'Mothership' }],
-  openGraph: {
-    title: 'Mothership Leads',
-    description: 'AI-Powered SMB Discovery & Outreach Platform',
-    type: 'website',
-  },
+  title: 'Mothership Leads - SMB Lead Finder',
+  description: 'SMB lead discovery and management tool',
 };
 
 export default function RootLayout({
@@ -20,10 +14,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <ThemeProvider defaultTheme="system" storageKey="mothership-theme">
-          {children}
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="bg-crm-bg" suppressHydrationWarning>
+        <ThemeProvider defaultTheme="dark" storageKey="mothership-theme">
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto bg-crm-bg">
+              {children}
+            </main>
+          </div>
         </ThemeProvider>
       </body>
     </html>

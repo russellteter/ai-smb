@@ -183,7 +183,7 @@ function HomePage() {
           setIsStreaming(false)
           setSearchJob(prev => prev ? {
             ...prev,
-            status: 'failed',
+            status: 'error',
             currentStep: 'Search failed'
           } : null)
         }
