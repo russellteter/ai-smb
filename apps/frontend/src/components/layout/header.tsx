@@ -18,6 +18,7 @@ import {
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -72,6 +73,9 @@ export function Header() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error-500 rounded-full animate-pulse" />
             </Button>
 
+            {/* Theme Toggle */}
+            <ThemeToggle className="hidden sm:block" />
+            
             {/* Settings */}
             <Button
               variant="ghost"

@@ -2,12 +2,12 @@ import { LeadQuerySchema } from './leadquery.js';
 import { z } from 'zod';
 
 export const ParsePromptRequestSchema = z.object({
-  prompt: z.string()
+  prompt: z.string().min(1, 'Prompt is required')
 });
 
 export const ParsePromptResponseSchema = z.object({
   dsl: LeadQuerySchema,
-  warnings: z.array(z.string())
+  warnings: z.array(z.string()).optional().default([])
 });
 
 export type ParsePromptRequest = z.infer<typeof ParsePromptRequestSchema>;

@@ -41,7 +41,59 @@ const searchQueue = new Queue('search', { connection });
 const searchEvents = new QueueEvents('search', { connection });
 
 app.get('/', async () => ({ service: 'mothership-api', status: 'live', version: '1.0.0' }));
-app.get('/health', async () => ({ ok: true }));
+
+// Enhanced health check with service connectivity verification
+app.get('/health', async () => {
+  const health: any = {
+    ok: true,
+    timestamp: new Date().toISOString(),
+    services: {
+      database: { status: 'unknown' },
+      redis: { status: 'unknown' },
+      openai: { configured: false },
+      google_maps: { configured: false }
+    }
+  };
+
+  // Check database connectivity
+  try {
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    await client.query('SELECT 1');
+    await client.end();
+    health.services.database.status = 'connected';
+  } catch (err: any) {
+    health.services.database.status = 'error';
+    health.services.database.error = err.message;
+    health.ok = false;
+  }
+
+  // Check Redis connectivity
+  try {
+    const testConnection = new IORedis(process.env.REDIS_URL);
+    await testConnection.ping();
+    await testConnection.quit();
+    health.services.redis.status = 'connected';
+  } catch (err: any) {
+    health.services.redis.status = 'error';
+    health.services.redis.error = err.message;
+    health.ok = false;
+  }
+
+  // Check API keys configuration
+  health.services.openai.configured = !!process.env.OPENAI_API_KEY;
+  if (!process.env.OPENAI_API_KEY) {
+    health.services.openai.warning = 'OPENAI_API_KEY not set - prompt parsing will use fallback';
+  }
+
+  health.services.google_maps.configured = !!process.env.GOOGLE_MAPS_API_KEY;
+  if (!process.env.GOOGLE_MAPS_API_KEY) {
+    health.services.google_maps.warning = 'GOOGLE_MAPS_API_KEY not set - location search disabled';
+  }
+
+  return health;
+});
+
 app.get('/api/job_health', async () => {
   // Minimal stub until full metrics: return queue counts
   const counts = await searchQueue.getJobCounts('waiting','active','completed','failed','delayed');
